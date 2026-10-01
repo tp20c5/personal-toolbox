@@ -1,0 +1,19 @@
+# OS cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor / OS
+*.swp
+.idea/
+.vscode/
+
+# PowerShell
+*.bak
+*.orig
+
+# Nothing large or private belongs in this repo. ASAR backups and app
+# artifacts stay out.
+*.asar
+*.asar.*
+app-update.yml

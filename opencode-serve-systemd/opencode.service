@@ -1,0 +1,59 @@
+[Unit]
+Description=OpenCode Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=opencode
+WorkingDirectory=/home/opencode
+
+# --- resources ---------------------------------------------------------------
+# `opencode serve` is one Bun/Node process driving a single event loop, but it
+# fans out to LSP / codegraph / agent child processes. A small CPU quota
+# starves that loop and stretches any synchronous SQLite work into minutes.
+# 400% = 4 of 8 cores.
+CPUQuota=400%
+CPUShares=2048
+
+# --- self-healing ------------------------------------------------------------
+# Bring the service back after a crash or OOM kill. NOTE: this does NOT cover a
+# *hang* -- if the event loop gets stuck the process stays alive, so Restart=
+# never fires. A wedged server is handled by the health probe (see README).
+Restart=always
+RestartSec=5
+
+# A hung process ignores SIGTERM; don't wait the default 90s for it.
+TimeoutStopSec=20
+SendSIGKILL=yes
+KillMode=control-group
+
+# Many concurrent request streams + LSP child processes.
+LimitNOFILE=65536
+
+NoNewPrivileges=true
+
+# systemd 219 (CentOS 7) does not know these directives: it ignores them and
+# logs "Failed to parse protect system value, ignoring". Uncomment only on
+# systemd >= 232.
+#ProtectSystem=strict
+#ProtectHome=read-write
+#ReadWritePaths=/home/opencode /tmp/opencode /tmp/ai-research
+
+# --- environment -------------------------------------------------------------
+# `opencode serve` requires a password; keep the real value OUT of this repo.
+# Either edit this line, or override it with a drop-in / EnvironmentFile.
+# See README.md -> "Set the server password".
+Environment=OPENCODE_SERVER_PASSWORD=CHANGE_ME
+Environment=HOME=/home/opencode
+Environment=BUN_INSTALL=/home/opencode/.bun
+Environment=NPM_CONFIG_PREFIX=/home/opencode/.local
+# Machine-specific toolchain paths -- adjust for your host.
+Environment=PATH=/home/opencode/tools/maven/bin:/usr/lib/jvm/jdk-21.0.11-oracle-x64/bin:/home/opencode/.bun/bin:/home/opencode/.local/bin:/usr/bin:/bin
+Environment=JAVA_HOME=/usr/lib/jvm/jdk-21.0.11-oracle-x64
+Environment=MAVEN_HOME=/home/opencode/tools/maven
+
+ExecStart=/home/opencode/.opencode/bin/opencode serve --port 4096 --hostname 0.0.0.0 --mdns-domain 218
+
+[Install]
+WantedBy=multi-user.target

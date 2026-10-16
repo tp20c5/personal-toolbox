@@ -18,6 +18,7 @@ its own README. Everything here is MIT licensed.
 | --- | --- | --- |
 | [opencode-desktop/](opencode-desktop/) | Keep the OpenCode desktop app on the classic layout, and switch its auto-updater off | Windows / PowerShell 5.1+ |
 | [opencode-serve/](opencode-serve/) | OpenCode plugin: stamp every assistant reply with the real delivery time (clean-then-append) | Any / TypeScript |
+| [opencode-serve-systemd/](opencode-serve-systemd/) | Run `opencode serve` under systemd with resource limits and a self-healing liveness probe | Linux / systemd |
 
 ---
 

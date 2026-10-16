@@ -1,0 +1,7 @@
+[Unit]
+Description=OpenCode server liveness probe
+After=opencode.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/opencode-healthcheck.sh

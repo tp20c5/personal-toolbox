@@ -28,7 +28,7 @@
 #   OPENCODE_ALERT_KIND             wecom|feishu|dingtalk|generic (default wecom)
 #   OPENCODE_ALERT_SILENCE          de-dup window in seconds (default 600)
 #   OPENCODE_ALERT_PREFIX           default opencode@$(hostname -s)
-#   OPENCODE_ALERT_DRYRUN           if 1, print the JSON instead of sending
+#   OPENCODE_ALERT_DRYRUN           if 1, print JSON only (no send, no journal)
 #   OPENCODE_DB_PATH                default /home/opencode/.local/share/opencode/opencode.db
 #   OPENCODE_DB_WARN_BYTES          default 17179869184 (16 GiB)
 #   OPENCODE_METRICS_FILE           default /run/opencode-healthcheck/metrics.log
@@ -86,8 +86,18 @@ alert_body() {
   esac
 }
 
+# log <message...>
+# Write to the journal, except under OPENCODE_ALERT_DRYRUN, where the probe is a
+# pure simulation and must not touch the journal at all.
+log() {
+  [ "${OPENCODE_ALERT_DRYRUN:-0}" = "1" ] && return 0
+  logger -t opencode-healthcheck "$@"
+}
+
 # alert <key> <severity> <message>
-# Always logs to the journal; sends to the webhook unless disabled or silenced.
+# In production: always logs to the journal, then sends to the webhook unless
+# disabled or silenced. Under OPENCODE_ALERT_DRYRUN it is a pure simulation --
+# it prints the payload to stdout and touches neither the journal nor the wire.
 # The silence window is per <key>, tracked under /run/opencode-healthcheck.
 alert() {
   local key="$1" severity="$2" msg="$3"
@@ -98,8 +108,17 @@ alert() {
   prefix="${OPENCODE_ALERT_PREFIX:-opencode@$(hostname -s)}"
   full="${prefix} [${severity}] ${msg}  (${ts})"
 
+  # A dry run is a pure simulation: print the payload, send nothing, log nothing,
+  # and do not consume the silence slot. Checked first so tests stay out of the
+  # journal.
+  if [ "${OPENCODE_ALERT_DRYRUN:-0}" = "1" ]; then
+    printf 'DRYRUN alert key=%s url=%s\n' "$key" "${OPENCODE_ALERT_WEBHOOK:-}"
+    printf '%s\n' "$(alert_body "$full")"
+    return 0
+  fi
+
   # The journal always gets the record, even when the webhook is off/silenced.
-  logger -t opencode-healthcheck "ALERT ${key} [${severity}] ${msg}"
+  log "ALERT ${key} [${severity}] ${msg}"
 
   # No webhook configured -> alerts are disabled (the restart still happens).
   if [ -z "${OPENCODE_ALERT_WEBHOOK:-}" ]; then
@@ -107,13 +126,6 @@ alert() {
   fi
 
   json=$(alert_body "$full")
-
-  # A dry run is a pure simulation: never send, never consume the silence slot.
-  if [ "${OPENCODE_ALERT_DRYRUN:-0}" = "1" ]; then
-    printf 'DRYRUN alert key=%s url=%s\n' "$key" "$OPENCODE_ALERT_WEBHOOK"
-    printf '%s\n' "$json"
-    return 0
-  fi
 
   mkdir -p "$STATE_DIR" 2>/dev/null || true
   stamp_file="${STATE_DIR}/alert_${key}"
@@ -144,10 +156,10 @@ esac
 echo "$n" > "$STATE"
 
 if [ "$n" -ge "$THRESHOLD" ]; then
-  logger -t opencode-healthcheck "no response ${n}x (last HTTP ${code}); restarting ${SERVICE}"
+  log "no response ${n}x (last HTTP ${code}); restarting ${SERVICE}"
   alert wedged_restart CRITICAL "no response ${n}x (last HTTP ${code}); restarting ${SERVICE}"
   if [ "${OPENCODE_HEALTHCHECK_NORESTART:-0}" = "1" ]; then
-    logger -t opencode-healthcheck "OPENCODE_HEALTHCHECK_NORESTART=1; not restarting ${SERVICE}"
+    log "OPENCODE_HEALTHCHECK_NORESTART=1; not restarting ${SERVICE}"
   else
     systemctl restart "$SERVICE"
   fi

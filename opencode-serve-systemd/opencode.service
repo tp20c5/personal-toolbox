@@ -24,7 +24,7 @@ Restart=always
 RestartSec=5
 
 # A hung process ignores SIGTERM; don't wait the default 90s for it.
-TimeoutStopSec=20
+TimeoutStopSec=60
 SendSIGKILL=yes
 KillMode=control-group
 

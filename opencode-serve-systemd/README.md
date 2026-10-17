@@ -49,7 +49,8 @@ the probe still restarts a wedged server and only records the event via
 | `sigkill` | CRITICAL | The last service run ended with `Result=signal`/`timeout` and `ExecMainStatus=9` (force-killed after ignoring SIGTERM); fired at most once per new `ExecMainStartTimestamp` |
 
 Every alert is logged to the journal first, so the journal always has the full
-record even when the webhook is disabled or silenced.
+record even when the webhook is disabled or silenced (a dry run is the
+exception: it neither sends nor logs).
 
 Message format:
 
@@ -77,8 +78,9 @@ Per alert key, the epoch of the last send is kept in
 `/run/opencode-healthcheck/alert_<key>`. A new alert with the same key is
 skipped when `now - last < OPENCODE_ALERT_SILENCE` (default 600 s), so a
 persistent problem pages at most once per window. `OPENCODE_ALERT_DRYRUN=1`
-prints the exact JSON + URL to stdout and never sends; a dry run is a pure
-simulation and does not consume the silence slot.
+prints the exact JSON + URL to stdout and never sends, and writes nothing to
+the journal; a dry run is a pure simulation and does not consume the silence
+slot.
 
 ### Environment variables
 
@@ -89,7 +91,7 @@ simulation and does not consume the silence slot.
 | `OPENCODE_ALERT_KIND` | `wecom` | `wecom` / `feishu` / `dingtalk` / `generic` |
 | `OPENCODE_ALERT_SILENCE` | `600` | Per-key de-dup window (seconds) |
 | `OPENCODE_ALERT_PREFIX` | `opencode@$(hostname -s)` | Message prefix |
-| `OPENCODE_ALERT_DRYRUN` | unset | `1` = print JSON, never send |
+| `OPENCODE_ALERT_DRYRUN` | unset | `1` = print JSON only (no send, no journal) |
 | `OPENCODE_DB_PATH` | `/home/opencode/.local/share/opencode/opencode.db` | File to size-watch |
 | `OPENCODE_DB_WARN_BYTES` | `17179869184` (16 GiB) | Alert threshold |
 | `OPENCODE_METRICS_FILE` | `/run/opencode-healthcheck/metrics.log` | Optional per-run metrics |
@@ -158,7 +160,7 @@ sudo systemctl daemon-reload
   out to LSP / codegraph / agent children; too small a quota starves the loop
   and stretches synchronous SQLite work from seconds into minutes.
 - `Restart=always` + `RestartSec=5` handles crashes and OOM kills.
-- `TimeoutStopSec=20` shortens the 90s default wait when a hung process is being
+- `TimeoutStopSec=60` shortens the 90s default wait when a hung process is being
   stopped; `SendSIGKILL=yes` guarantees the kill lands.
 - `LimitNOFILE=65536` matters with hundreds of concurrent streams and LSP child
   processes; the 4096 default is easy to exhaust.

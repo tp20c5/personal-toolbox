@@ -10,6 +10,7 @@ someone notices.
 | `opencode-healthcheck.sh` | The liveness probe: forces a restart of a hung server |
 | `opencode-healthcheck.service` | oneshot unit that runs the probe |
 | `opencode-healthcheck.timer` | Fires the probe once a minute |
+| `opencode-alert.conf.example` | Template for the IM webhook / DB-watch config (`/etc/opencode-healthcheck.conf`) |
 
 > 中文摘要：把 `opencode serve` 作为 systemd 服务运行，并配一个每分钟一次的
 > 存活探针。核心动机：`opencode serve` 是单进程单事件循环，一旦事件循环被
@@ -31,6 +32,83 @@ what `GET /` returns when `OPENCODE_SERVER_PASSWORD` is set. Only a timeout,
 connection failure or 5xx counts as a strike. After 3 consecutive strikes
 (~3 minutes) it runs `systemctl restart opencode.service`.
 
+## Alerting
+
+The probe can push an IM webhook alert whenever something is wrong. Alerts are
+**off by default**: set `OPENCODE_ALERT_WEBHOOK` (via
+`/etc/opencode-healthcheck.conf`, `chmod 600`) to enable them. With no webhook
+the probe still restarts a wedged server and only records the event via
+`logger -t opencode-healthcheck` (visible in `journalctl`).
+
+### Alert triggers
+
+| Alert key | Severity | When it fires |
+| --- | --- | --- |
+| `wedged_restart` | CRITICAL | The probe itself restarts the service after `THRESHOLD` consecutive failures |
+| `db_size` | WARNING | `opencode.db` size `>= OPENCODE_DB_WARN_BYTES` |
+| `sigkill` | CRITICAL | The last service run ended with `Result=signal`/`timeout` and `ExecMainStatus=9` (force-killed after ignoring SIGTERM); fired at most once per new `ExecMainStartTimestamp` |
+
+Every alert is logged to the journal first, so the journal always has the full
+record even when the webhook is disabled or silenced.
+
+Message format:
+
+```
+<PREFIX> [<SEVERITY>] <message>  (<ISO-8601 UTC timestamp>)
+```
+
+### Webhook kinds
+
+`OPENCODE_ALERT_KIND` selects the JSON body:
+
+| Kind | Body |
+| --- | --- |
+| `wecom` (default) | `{"msgtype":"text","text":{"content":"<msg>"}}` |
+| `dingtalk` | `{"msgtype":"text","text":{"content":"<msg>"}}` |
+| `feishu` | `{"msg_type":"text","content":{"text":"<msg>"}}` |
+| `generic` | `{"text":"<msg>"}` |
+
+Sent with `curl -s -m 5 -H 'Content-Type: application/json' -d "$json" "$OPENCODE_ALERT_WEBHOOK"`.
+The message is JSON-escaped (backslashes and double-quotes).
+
+### De-dup / silence
+
+Per alert key, the epoch of the last send is kept in
+`/run/opencode-healthcheck/alert_<key>`. A new alert with the same key is
+skipped when `now - last < OPENCODE_ALERT_SILENCE` (default 600 s), so a
+persistent problem pages at most once per window. `OPENCODE_ALERT_DRYRUN=1`
+prints the exact JSON + URL to stdout and never sends; a dry run is a pure
+simulation and does not consume the silence slot.
+
+### Environment variables
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `OPENCODE_ALERT_CONF` | `/etc/opencode-healthcheck.conf` | Sourced early if readable |
+| `OPENCODE_ALERT_WEBHOOK` | empty | Webhook URL; empty disables alerts |
+| `OPENCODE_ALERT_KIND` | `wecom` | `wecom` / `feishu` / `dingtalk` / `generic` |
+| `OPENCODE_ALERT_SILENCE` | `600` | Per-key de-dup window (seconds) |
+| `OPENCODE_ALERT_PREFIX` | `opencode@$(hostname -s)` | Message prefix |
+| `OPENCODE_ALERT_DRYRUN` | unset | `1` = print JSON, never send |
+| `OPENCODE_DB_PATH` | `/home/opencode/.local/share/opencode/opencode.db` | File to size-watch |
+| `OPENCODE_DB_WARN_BYTES` | `17179869184` (16 GiB) | Alert threshold |
+| `OPENCODE_METRICS_FILE` | `/run/opencode-healthcheck/metrics.log` | Optional per-run metrics |
+| `OPENCODE_HEALTHCHECK_NORESTART` | unset | `1` = log the restart, do not run it (testing) |
+
+**The probe never mutates the database.** It only `stat`s the file size. It
+never opens, reads, writes, deletes or vacuums `opencode.db`; the size check is
+alert-only by design.
+
+> 中文摘要：探针可推送 IM webhook 告警（企业微信/飞书/钉钉/通用），**默认关闭**
+> ——在 `/etc/opencode-healthcheck.conf`（`chmod 600`）里填 `OPENCODE_ALERT_WEBHOOK`
+> 才会启用；未配置时仍照常重启僵死服务，仅通过 `logger` 记入 journal。
+> 告警触发点：`wedged_restart`（探针自身触发重启）、`db_size`（`opencode.db`
+> 超过 `OPENCODE_DB_WARN_BYTES`，默认 16 GiB）、`sigkill`（上次运行被 SIGKILL，
+> 即进程忽略 SIGTERM，每个新的启动时间戳最多告警一次）。消息格式为
+> `<前缀> [<级别>] <内容>  (<ISO-8601 时间戳>)`。去重：按告警键记录上次发送时间，
+> `now - last < OPENCODE_ALERT_SILENCE`（默认 600 秒）内不重复发送。
+> **探针绝不改动数据库**：只对文件做 `stat` 取大小，绝不打开/读取/写入/删除/vacuum。
+
 ## Install
 
 The commands below assume CentOS 7 / systemd 219 and a `/home/opencode` layout.
@@ -45,6 +123,11 @@ sudo cp opencode-healthcheck.sh        /usr/local/sbin/opencode-healthcheck.sh
 sudo chmod +x                          /usr/local/sbin/opencode-healthcheck.sh
 sudo cp opencode-healthcheck.service   /etc/systemd/system/
 sudo cp opencode-healthcheck.timer     /etc/systemd/system/
+
+# 2b. Alerting config (optional -- leave the webhook empty to disable alerts)
+sudo cp opencode-alert.conf.example    /etc/opencode-healthcheck.conf
+sudo chmod 600                         /etc/opencode-healthcheck.conf
+# then edit it and replace CHANGE_ME with your real webhook key
 
 # 3. Review, then enable
 sudo systemd-analyze verify /etc/systemd/system/opencode.service

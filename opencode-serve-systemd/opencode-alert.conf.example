@@ -1,0 +1,13 @@
+# Copy to /etc/opencode-healthcheck.conf and chmod 600.
+# IM webhook alerting for the opencode liveness probe. Leave the webhook empty to disable alerts.
+OPENCODE_ALERT_WEBHOOK=https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=CHANGE_ME
+
+# Alert kind: wecom | feishu | dingtalk | generic
+OPENCODE_ALERT_KIND=wecom
+
+# De-dup / silence window in seconds, applied per alert key.
+OPENCODE_ALERT_SILENCE=600
+
+# DB size watch. The probe only stats the file; it never mutates the DB.
+OPENCODE_DB_PATH=/home/opencode/.local/share/opencode/opencode.db
+OPENCODE_DB_WARN_BYTES=17179869184

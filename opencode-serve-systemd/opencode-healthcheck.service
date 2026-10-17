@@ -4,4 +4,5 @@ After=opencode.service
 
 [Service]
 Type=oneshot
+EnvironmentFile=-/etc/opencode-healthcheck.conf
 ExecStart=/usr/local/sbin/opencode-healthcheck.sh

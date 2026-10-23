@@ -71,14 +71,22 @@ def human(n):
         n /= 1024
 
 
-def progress_bar(current, total, width=40, prefix=""):
-    """Print a progress bar that updates in place."""
+def progress_bar(current, total, width=40, prefix="", unit=""):
+    """Print a progress bar that updates in place.
+
+    `current`/`total` are item counts (rows, files, ...), not bytes; the caller
+    passes `unit` so the label reads e.g. "1,234 / 2,000 rows". Formatting the
+    counts with `human()` would silently misreport them as MB/GB.
+    """
     if total == 0:
         return
     pct = current / total
     filled = int(width * pct)
     bar = "=" * filled + "-" * (width - filled)
-    sys.stdout.write(f"\r{prefix}[{bar}] {pct:.1%} ({human(current)} / {human(total)})")
+    counts = f"{current:,} / {total:,}"
+    if unit:
+        counts += f" {unit}"
+    sys.stdout.write(f"\r{prefix}[{bar}] {pct:.1%} ({counts})")
     sys.stdout.flush()
     if current >= total:
         sys.stdout.write("\n")
@@ -533,10 +541,10 @@ def prune_tool_output(tool_dir, max_age_days=None, dry_run=False):
                 deleted += 1
                 freed += stat.st_size
         if (i + 1) % 100 == 0:
-            progress_bar(i + 1, total, prefix="  tool-output: ")
+            progress_bar(i + 1, total, prefix="  tool-output: ", unit="files")
 
     if total > 100:
-        progress_bar(total, total, prefix="  tool-output: ")
+        progress_bar(total, total, prefix="  tool-output: ", unit="files")
 
     return deleted, freed
 
@@ -618,7 +626,7 @@ def prune_events_batched(cx, keep_sessions, synced_ids, batch_size=DEFAULT_BATCH
         batch_num += 1
 
         progress_bar(total_deleted, total_doomed,
-                     prefix=f"  batch {batch_num}: ")
+                     prefix=f"  batch {batch_num}: ", unit="rows")
 
     print(f"  completed: {total_deleted:,} rows deleted, {human(total_freed)} freed")
     return total_deleted, total_freed

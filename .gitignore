@@ -17,3 +17,11 @@ desktop.ini
 *.asar
 *.asar.*
 app-update.yml
+
+# Third-party projects pulled in for reference/use. Not ours, stays out of
+# git until we fork or modify them (then promote to a top-level tool folder).
+/vendor/
+
+# Agent runtime state (session continuation, background-task bookkeeping).
+# Ephemeral, machine-local — never source.
+.omo/

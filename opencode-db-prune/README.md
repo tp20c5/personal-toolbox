@@ -4,7 +4,7 @@
 
 > **Tested on macOS.** Linux written, Windows implemented. See [Platforms](#platforms).
 
-> **This copy carries local patches** (v`2.0.0+toolbox.1`) so it runs on old
+> **This copy carries local patches** (v`2.0.0+toolbox.2`) so it runs on old
 > Linux stacks — CentOS 7 with Python 3.6 / SQLite 3.7.17. See
 > [Local patches](#local-patches-personal-toolbox).
 
@@ -259,7 +259,7 @@ Hay una versión completa en español: **[LEEME.md](LEEME.md)**.
 ## Local patches (personal-toolbox)
 
 Vendored from upstream commit
-[`04c4808`](https://github.com/anomalyco/opencode-db-prune/commit/04c4808e4be6129e8ce28afb2af27f9d4ab3f57b),
+[`04c4808`](https://github.com/ANGELBERRIOS23/opencode-db-prune/commit/04c4808e4be6129e8ce28afb2af27f9d4ab3f57b),
 then patched to run on CentOS 7 (Python 3.6.8, SQLite 3.7.17 — no JSON1, no
 window functions, often no `lsof`). Version is marked `2.0.0+toolbox.2`.
 

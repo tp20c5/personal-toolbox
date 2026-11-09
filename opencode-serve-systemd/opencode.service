@@ -5,8 +5,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=opencode
-WorkingDirectory=/home/opencode
+User=you
+WorkingDirectory=/home/you
 
 # --- resources ---------------------------------------------------------------
 # `opencode serve` is one Bun/Node process driving a single event loop, but it
@@ -38,22 +38,22 @@ NoNewPrivileges=true
 # systemd >= 232.
 #ProtectSystem=strict
 #ProtectHome=read-write
-#ReadWritePaths=/home/opencode /tmp/opencode /tmp/ai-research
+#ReadWritePaths=/home/you /tmp/opencode
 
 # --- environment -------------------------------------------------------------
 # `opencode serve` requires a password; keep the real value OUT of this repo.
 # Either edit this line, or override it with a drop-in / EnvironmentFile.
 # See README.md -> "Set the server password".
 Environment=OPENCODE_SERVER_PASSWORD=CHANGE_ME
-Environment=HOME=/home/opencode
-Environment=BUN_INSTALL=/home/opencode/.bun
-Environment=NPM_CONFIG_PREFIX=/home/opencode/.local
+Environment=HOME=/home/you
+Environment=BUN_INSTALL=/home/you/.bun
+Environment=NPM_CONFIG_PREFIX=/home/you/.local
 # Machine-specific toolchain paths -- adjust for your host.
-Environment=PATH=/home/opencode/tools/maven/bin:/usr/lib/jvm/jdk-21.0.11-oracle-x64/bin:/home/opencode/.bun/bin:/home/opencode/.local/bin:/usr/bin:/bin
-Environment=JAVA_HOME=/usr/lib/jvm/jdk-21.0.11-oracle-x64
-Environment=MAVEN_HOME=/home/opencode/tools/maven
+Environment=PATH=/home/you/tools/maven/bin:/usr/lib/jvm/jdk-21/bin:/home/you/.bun/bin:/home/you/.local/bin:/usr/bin:/bin
+Environment=JAVA_HOME=/usr/lib/jvm/jdk-21
+Environment=MAVEN_HOME=/home/you/tools/maven
 
-ExecStart=/home/opencode/.opencode/bin/opencode serve --port 4096 --hostname 0.0.0.0 --mdns-domain 218
+ExecStart=/home/you/.opencode/bin/opencode serve --port 4096 --hostname 0.0.0.0 --mdns-domain example
 
 [Install]
 WantedBy=multi-user.target

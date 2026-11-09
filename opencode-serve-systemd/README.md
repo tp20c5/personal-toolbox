@@ -92,7 +92,7 @@ slot.
 | `OPENCODE_ALERT_SILENCE` | `600` | Per-key de-dup window (seconds) |
 | `OPENCODE_ALERT_PREFIX` | `opencode@$(hostname -s)` | Message prefix |
 | `OPENCODE_ALERT_DRYRUN` | unset | `1` = print JSON only (no send, no journal) |
-| `OPENCODE_DB_PATH` | `/home/opencode/.local/share/opencode/opencode.db` | File to size-watch |
+| `OPENCODE_DB_PATH` | `/home/you/.local/share/opencode/opencode.db` | File to size-watch |
 | `OPENCODE_DB_WARN_BYTES` | `17179869184` (16 GiB) | Alert threshold |
 | `OPENCODE_METRICS_FILE` | `/run/opencode-healthcheck/metrics.log` | Optional per-run metrics |
 | `OPENCODE_HEALTHCHECK_NORESTART` | unset | `1` = log the restart, do not run it (testing) |
@@ -113,7 +113,7 @@ alert-only by design.
 
 ## Install
 
-The commands below assume CentOS 7 / systemd 219 and a `/home/opencode` layout.
+The commands below assume CentOS 7 / systemd 219 and a `/home/you` layout.
 Adjust paths to taste.
 
 ```bash
@@ -176,7 +176,7 @@ sudo systemctl daemon-reload
   loop of a very large `opencode.db`. Keep an eye on `opencode.db` growth.
 - The probe restarts the service, which will interrupt any in-flight sessions.
   Three consecutive misses is a deliberate trade-off to avoid flapping.
-- Paths (`/home/opencode`, JDK, Maven) are from one specific machine.
+- Paths (`/home/you`, JDK, Maven) are placeholders — adjust them for your host.
 
 ## Verify
 

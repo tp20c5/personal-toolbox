@@ -29,7 +29,7 @@
 #   OPENCODE_ALERT_SILENCE          de-dup window in seconds (default 600)
 #   OPENCODE_ALERT_PREFIX           default opencode@$(hostname -s)
 #   OPENCODE_ALERT_DRYRUN           if 1, print JSON only (no send, no journal)
-#   OPENCODE_DB_PATH                default /home/opencode/.local/share/opencode/opencode.db
+#   OPENCODE_DB_PATH                default /home/you/.local/share/opencode/opencode.db
 #   OPENCODE_DB_WARN_BYTES          default 17179869184 (16 GiB)
 #   OPENCODE_METRICS_FILE           default /run/opencode-healthcheck/metrics.log
 #
@@ -168,7 +168,7 @@ fi
 
 # ---- DB size (alert only; never mutate the DB) -----------------------------
 
-DB_PATH="${OPENCODE_DB_PATH:-/home/opencode/.local/share/opencode/opencode.db}"
+DB_PATH="${OPENCODE_DB_PATH:-/home/you/.local/share/opencode/opencode.db}"
 DB_WARN="${OPENCODE_DB_WARN_BYTES:-17179869184}"
 db_bytes=""
 if [ -f "$DB_PATH" ]; then

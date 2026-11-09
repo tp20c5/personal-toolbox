@@ -19,6 +19,8 @@ its own README. Everything here is MIT licensed.
 | [opencode-desktop/](opencode-desktop/) | Keep the OpenCode desktop app on the classic layout, and switch its auto-updater off | Windows / PowerShell 5.1+ |
 | [opencode-serve/](opencode-serve/) | OpenCode plugin: stamp every assistant reply with the real delivery time (clean-then-append) | Any / TypeScript |
 | [opencode-serve-systemd/](opencode-serve-systemd/) | Run `opencode serve` under systemd with resource limits and a self-healing liveness probe | Linux / systemd |
+| [opencode-session-prune/](opencode-session-prune/) | Delete old OpenCode sessions and reclaim the disk `opencode.db` has been eating | Linux / bash + sqlite3 |
+| [opencode-db-prune/](opencode-db-prune/) | Reclaim the event-table bloat inside `opencode.db` without deleting sessions or messages (patched fork: runs on Python 3.6 / SQLite 3.7) | Linux / Python (stdlib only) |
 
 ---
 
